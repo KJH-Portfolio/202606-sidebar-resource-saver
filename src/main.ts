@@ -104,10 +104,13 @@ export default class SidebarResourceSaverPlugin extends Plugin {
             const currentUrl = typeof htmlEl.getURL === 'function' ? htmlEl.getURL() : htmlEl.src;
             console.log(`[SidebarResourceSaver] Saving URL: ${currentUrl}`);
             
-            if (currentUrl && currentUrl !== 'about:blank' && currentUrl !== 'data:text/html,') {
+            // [버그 방어막 1] 오직 정상적인 웹사이트(http/https) 주소일 때만 저장합니다.
+            // 에러 페이지나 빈 화면 주소가 덮어씌워지는 치명적인 버그를 원천 차단합니다.
+            if (currentUrl && currentUrl.startsWith('http')) {
                 htmlEl.setAttribute('data-saved-url', currentUrl);
+            }
                 
-                try {
+            try {
                     // 일렉트론 에러를 피하기 위해 요소는 그대로 두고 내부 주소만 비웁니다.
                     if (typeof htmlEl.loadURL === 'function') {
                         htmlEl.loadURL('about:blank');
@@ -119,7 +122,6 @@ export default class SidebarResourceSaverPlugin extends Plugin {
                 } catch (err) {
                     console.error(`[SidebarResourceSaver] Failed to unload URL:`, err);
                 }
-            }
         });
     }
 
@@ -130,6 +132,49 @@ export default class SidebarResourceSaverPlugin extends Plugin {
         elements.forEach((el: Element) => {
             const htmlEl = el as any;
             const savedUrl = htmlEl.getAttribute('data-saved-url');
+            
+            // [버그 방어막 3] 에러 스티커(오버레이) 강제 철거 및 웹뷰 시야 복구
+            try {
+                const parent = htmlEl.parentElement;
+                if (parent) {
+                    const divs = parent.querySelectorAll('div');
+                    for (let i = 0; i < divs.length; i++) {
+                        const div = divs[i] as HTMLElement;
+                        if (div.textContent && (div.textContent.includes('해당 웹사이트를 로드할 수 없음') || div.textContent.includes('ERR_'))) {
+                            console.log(`[SidebarResourceSaver] Hiding error overlay sticker!`);
+                            div.style.display = 'none';
+                        }
+                    }
+                }
+                // 숨겨진 웹뷰 강제 복구
+                if (htmlEl.style.display === 'none') htmlEl.style.display = '';
+                htmlEl.classList.remove('hidden');
+            } catch (e) {
+                console.error(`[SidebarResourceSaver] Failed to remove error overlay:`, e);
+            }
+            
+            // [버그 방어막 2] 새로고침(reload) 가로채기
+            if (typeof htmlEl.reload === 'function' && !htmlEl.__resourceSaverReloadPatched) {
+                const originalReload = htmlEl.reload;
+                htmlEl.reload = function() {
+                    const current = typeof htmlEl.getURL === 'function' ? htmlEl.getURL() : htmlEl.src;
+                    const saved = htmlEl.getAttribute('data-saved-url');
+                    
+                    // 현재 주소가 정상(http)이 아닌데(에러 페이지) 새로고침을 시도하면,
+                    // 에러 페이지를 새로고침하는 대신 우리가 저장해둔 '진짜 주소'로 강제 복구시킵니다.
+                    if (current && !current.startsWith('http') && saved && saved.startsWith('http')) {
+                        console.log(`[SidebarResourceSaver] Intercepted reload on error page. Restoring saved URL.`);
+                        if (typeof htmlEl.loadURL === 'function') htmlEl.loadURL(saved);
+                        else htmlEl.src = saved;
+                        return;
+                    }
+                    
+                    // 정상적인 웹서핑 중에는 100% 원래의 새로고침 기능을 수행합니다.
+                    originalReload.apply(htmlEl, arguments);
+                };
+                htmlEl.__resourceSaverReloadPatched = true;
+            }
+
             console.log(`[SidebarResourceSaver] Reloading URL: ${savedUrl}`);
             
             if (savedUrl) {
