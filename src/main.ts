@@ -65,7 +65,7 @@ export default class SidebarResourceSaverPlugin extends Plugin {
     getWebviewsInSidebar(name: string): Element[] {
         const webviews: Element[] = [];
         // 옵시디언 화면 전체를 싹쓸이하여 브라우저 객체를 모조리 찾습니다.
-        const allWebviews = document.querySelectorAll('iframe, webview');
+        const allWebviews = activeDocument.querySelectorAll('iframe, webview');
         
         allWebviews.forEach(el => {
             // 부모 객체를 거꾸로 타고 올라가 자신이 어느 사이드바 출신인지 검사합니다.
@@ -126,7 +126,7 @@ export default class SidebarResourceSaverPlugin extends Plugin {
                     } else {
                         htmlEl.src = 'about:blank';
                     }
-                } catch (err) {
+                } catch {
                     // 무시
                 }
         });
@@ -154,7 +154,7 @@ export default class SidebarResourceSaverPlugin extends Plugin {
                 // 숨겨진 웹뷰 강제 복구
                 if (htmlEl.style.getPropertyValue('display') === 'none') htmlEl.style.removeProperty('display');
                 htmlEl.classList.remove('hidden');
-            } catch (_e) {
+            } catch {
                 // 무시
             }
             
@@ -186,7 +186,7 @@ export default class SidebarResourceSaverPlugin extends Plugin {
                     } else {
                         htmlEl.src = savedUrl;
                     }
-                } catch (err) {
+                } catch {
                     // 무시
                 }
                 htmlEl.removeAttribute('data-saved-url');
