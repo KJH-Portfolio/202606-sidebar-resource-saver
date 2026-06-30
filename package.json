@@ -1,6 +1,6 @@
 {
 	"name": "sidebar-resource-saver",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Automatically suspends unused webviews and iframes in collapsed sidebars to drastically save RAM and CPU usage.",
 	"main": "main.js",
 	"type": "module",

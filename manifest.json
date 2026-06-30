@@ -1,7 +1,7 @@
 {
 	"id": "sidebar-resource-saver",
 	"name": "Sidebar Resource Saver",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "0.15.0",
 	"description": "Automatically suspends unused webviews and iframes in collapsed sidebars to drastically save RAM and CPU usage.",
 	"author": "KJH",
